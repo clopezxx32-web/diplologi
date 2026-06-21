@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const API_URL = 'http://localhost:5000/api';
+    const API_URL = '/api';
     
     // Mobile menu toggle
     const mobileMenuBtn = document.getElementById('mobile-menu-btn');
@@ -271,7 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <tr>
                                 <td colspan="7" style="text-align: center; padding: 2rem; color: var(--danger-color);">
                                     <strong>⚠️ Cannot connect to API server</strong><br>
-                                    <small style="color: var(--text-secondary);">Make sure the backend server is running at http://localhost:5000</small>
+                                    <small style="color: var(--text-secondary);">Make sure your network connection is stable and the server is responsive.</small>
                                 </td>
                             </tr>
                         `;
@@ -431,7 +431,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 } catch (err) {
                     const errorEl = document.getElementById('modal-error');
                     if (errorEl) {
-                        errorEl.textContent = err.message + ' (Is the API server running?)';
+                        errorEl.textContent = err.message + ' (Check your connection to the server)';
                         errorEl.style.display = 'block';
                     }
                 }
@@ -450,7 +450,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 fetchParcels();
             } catch (err) {
-                alert('Error: ' + err.message + '\nMake sure the API server is running.');
+                alert('Error: ' + err.message + '\nMake sure you are connected to the server.');
             }
         }
     }
