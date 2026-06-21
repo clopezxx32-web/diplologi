@@ -1,8 +1,8 @@
 const mongoose = require('mongoose');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
 
 const ParcelSchema = new mongoose.Schema({
-    trackingId: { type: String, unique: true, default: () => `TRK-${uuidv4().split('-')[0].toUpperCase()}` },
+    trackingId: { type: String, unique: true, default: () => `TRK-${crypto.randomUUID().split('-')[0].toUpperCase()}` },
     sender: { type: String, required: true },
     recipient: { type: String, required: true },
     destination: { type: String, required: true },
