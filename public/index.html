@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="PrimeLogistics - Professional and diplomatic international delivery services. Track parcels in real-time with confidence.">
+    <meta name="keywords" content="delivery, parcel tracking, logistics, international shipping">
+    <title>PrimeLogistics | Professional Parcel Delivery & Real-Time Tracking</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" type="image/x-icon" href="favicon.PNG">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- NAVIGATION -->
+    <header class="navbar">
+        <div class="container">
+            <div class="navbar-content">
+                <div class="logo">
+                    <h1>PrimeLogistics</h1>
+                    <span class="tagline">Trusted Global Delivery</span>
+                </div>
+                <nav class="nav-menu">
+                    <a href="#track-section" class="nav-link">Track Parcel</a>
+                    <a href="#services" class="nav-link">Services</a>
+                    <a href="#features" class="nav-link">Features</a>
+                    <a href="#testimonials" class="nav-link">Testimonials</a>
+                    <a href="dashboard.html" class="nav-link btn-admin">Admin Portal</a>
+                </nav>
+                <button class="mobile-menu-btn" id="mobile-menu-btn">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- HERO SECTION -->
+        <section class="hero" id="hero-section">
+            <div class="container">
+                <div class="hero-content">
+                    <h2 class="hero-title">Experience Premium Global Delivery</h2>
+                    <p class="hero-subtitle">Reliable, professional, and transparent parcel delivery services worldwide. Track your shipment every step of the way.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- TRACKING SECTION -->
+        <section class="tracking-section" id="track-section">
+            <div class="container">
+                <div class="tracking-card">
+                    <div class="tracking-header">
+                        <h2>Track Your Shipment</h2>
+                        <p>Enter your tracking ID to monitor your parcel in real-time</p>
+                    </div>
+
+                    <form id="track-form" class="tracking-form">
+                        <div class="input-group">
+                            <input type="text" id="tracking-id" class="form-control" placeholder="Enter tracking ID (e.g., TRK-A1B2C3D4)" required>
+                            <button type="submit" class="btn btn-primary">Track Now</button>
+                        </div>
+                    </form>
+
+                    <div id="tracking-result" class="result-card" style="display: none;">
+                        <div class="result-header">
+                            <h3>Shipment Details</h3>
+                            <span class="result-close" onclick="document.getElementById('tracking-result').style.display='none'">&times;</span>
+                        </div>
+                        <div class="result-grid">
+                            <div class="result-item">
+                                <label>Tracking ID</label>
+                                <p id="res-tracking-id"></p>
+                            </div>
+                            <div class="result-item">
+                                <label>Status</label>
+                                <p><span id="res-status" class="badge"></span></p>
+                            </div>
+                            <div class="result-item">
+                                <label>Estimated Delivery</label>
+                                <p id="res-edd"></p>
+                            </div>
+                            <div class="result-item">
+                                <label>Weight</label>
+                                <p id="res-weight"></p>
+                            </div>
+                        </div>
+                        <div class="result-details">
+                            <div class="detail-row">
+                                <strong>From:</strong>
+                                <span id="res-sender"></span>
+                            </div>
+                            <div class="detail-row">
+                                <strong>To:</strong>
+                                <span id="res-recipient"></span>
+                            </div>
+                            <div class="detail-row">
+                                <strong>Destination:</strong>
+                                <span id="res-destination"></span>
+                            </div>
+                        </div>
+                        <div class="tracking-timeline">
+                            <h4>Delivery Timeline</h4>
+                            <div id="res-history-container" class="history-list">
+                                <!-- Dynamically populated -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="track-error" class="alert alert-error"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SERVICES SECTION -->
+        <section class="services-section" id="services">
+            <div class="container">
+                <h2 class="section-title">Our Services</h2>
+                <p class="section-subtitle">Comprehensive delivery solutions tailored to your needs</p>
+                
+                <div class="services-grid">
+                    <div class="service-card">
+                        <div class="service-icon">📦</div>
+                        <h3>Standard Delivery</h3>
+                        <p>Reliable and cost-effective delivery for packages of all sizes, with transparent tracking and regular updates.</p>
+                    </div>
+                    <div class="service-card">
+                        <div class="service-icon">⚡</div>
+                        <h3>Express Delivery</h3>
+                        <p>Fast-track your shipments with our express service. Guaranteed delivery windows and priority handling.</p>
+                    </div>
+                    <div class="service-card">
+                        <div class="service-icon">🌍</div>
+                        <h3>International Shipping</h3>
+                        <p>Global reach with local expertise. We handle customs and international regulations with professionalism.</p>
+                    </div>
+                    <div class="service-card">
+                        <div class="service-icon">🛡️</div>
+                        <h3>Secure Handling</h3>
+                        <p>Premium insurance coverage and secure handling for high-value items. Full liability protection included.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FEATURES SECTION -->
+        <section class="features-section" id="features">
+            <div class="container">
+                <h2 class="section-title">Why Choose PrimeLogistics?</h2>
+                
+                <div class="features-grid">
+                    <div class="feature-item">
+                        <div class="feature-number">✓</div>
+                        <h3>Real-Time Tracking</h3>
+                        <p>Monitor every movement of your parcel with GPS-enabled real-time tracking and instant notifications.</p>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-number">✓</div>
+                        <h3>Professional Team</h3>
+                        <p>Our trained logistics professionals ensure diplomatic handling and excellent customer service at all times.</p>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-number">✓</div>
+                        <h3>Transparent Pricing</h3>
+                        <p>No hidden fees. Clear, competitive pricing with detailed breakdowns for every shipment.</p>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-number">✓</div>
+                        <h3>24/7 Support</h3>
+                        <p>Round-the-clock customer support to answer your questions and resolve issues immediately.</p>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-number">✓</div>
+                        <h3>Eco-Friendly</h3>
+                        <p>Committed to sustainable delivery practices with carbon-neutral shipping options available.</p>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-number">✓</div>
+                        <h3>Global Network</h3>
+                        <p>Partnered with premium logistics providers across 150+ countries for seamless international delivery.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TESTIMONIALS SECTION -->
+        <section class="testimonials-section" id="testimonials">
+            <div class="container">
+                <h2 class="section-title">Customer Stories</h2>
+                
+                <div class="testimonials-grid">
+                    <div class="testimonial-card">
+                        <div class="stars">★★★★★</div>
+                        <p class="testimonial-text">"PrimeLogistics transformed our shipping operations. Professional, reliable, and the tracking system is exceptional. Highly recommended."</p>
+                        <div class="testimonial-author">
+                            <strong>Sarah Johnson</strong>
+                            <span>E-Commerce Business Owner</span>
+                        </div>
+                    </div>
+                    <div class="testimonial-card">
+                        <div class="stars">★★★★★</div>
+                        <p class="testimonial-text">"The customer service team is outstanding. They handled our fragile items with care and kept us updated throughout the entire process."</p>
+                        <div class="testimonial-author">
+                            <strong>Michael Chen</strong>
+                            <span>Art Gallery Manager</span>
+                        </div>
+                    </div>
+                    <div class="testimonial-card">
+                        <div class="stars">★★★★★</div>
+                        <p class="testimonial-text">"International shipping has never been easier. Their diplomatic approach to customs made our global expansion seamless."</p>
+                        <div class="testimonial-author">
+                            <strong>Elena Martinez</strong>
+                            <span>International Trade Specialist</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA SECTION -->
+        <section class="cta-section">
+            <div class="container">
+                <h2>Ready to Ship with Confidence?</h2>
+                <p>Join thousands of satisfied customers who trust PrimeLogistics for their delivery needs</p>
+                <button class="btn btn-secondary" onclick="document.getElementById('track-section').scrollIntoView({behavior: 'smooth'})">Start Tracking Now</button>
+            </div>
+        </section>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>PrimeLogistics</h4>
+                    <p>Your trusted partner in global logistics and parcel delivery services.</p>
+                    <div class="social-links">
+                        <a href="#" title="Facebook">f</a>
+                        <a href="#" title="Twitter">𝕏</a>
+                        <a href="#" title="LinkedIn">in</a>
+                    </div>
+                </div>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="#track-section">Track Parcel</a></li>
+                        <li><a href="#services">Our Services</a></li>
+                        <li><a href="#features">Why Us</a></li>
+                        <li><a href="dashboard.html">Admin Portal</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Services</h4>
+                    <ul>
+                        <li><a href="#services">Standard Delivery</a></li>
+                        <li><a href="#services">Express Delivery</a></li>
+                        <li><a href="#services">International Shipping</a></li>
+                        <li><a href="#services">Insurance Coverage</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="#">Contact Us</a></li>
+                        <li><a href="#">FAQs</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms & Conditions</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 PrimeLogistics. All rights reserved. | Designed with expertise and care for your logistics needs.</p>
+                <div class="footer-links">
+                    <a href="#">Privacy</a> • <a href="#">Terms</a> • <a href="#">Cookies</a> • <a href="#">Accessibility</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
