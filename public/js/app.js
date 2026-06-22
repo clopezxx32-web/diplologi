@@ -455,170 +455,231 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- CHAT LOGIC ---
-    if (typeof io !== 'undefined') {
-        const socket = io();
-        
-        // CUSTOMER SIDE CHAT
-        if (!isDashboard) {
-            const chatWidget = document.getElementById('chat-widget');
-            const chatIcon = document.getElementById('chat-icon');
-            const chatWindow = document.getElementById('chat-window');
-            const closeChat = document.getElementById('close-chat');
-            const chatMessages = document.getElementById('chat-messages');
-            const chatInput = document.getElementById('chat-input');
-            const sendChatBtn = document.getElementById('send-chat');
+    // --- CHAT LOGIC (HTTP POLLING) ---
+    // CUSTOMER SIDE CHAT
+    if (!isDashboard) {
+        const chatWidget = document.getElementById('chat-widget');
+        const chatIcon = document.getElementById('chat-icon');
+        const chatWindow = document.getElementById('chat-window');
+        const closeChat = document.getElementById('close-chat');
+        const chatMessages = document.getElementById('chat-messages');
+        const chatInput = document.getElementById('chat-input');
+        const sendChatBtn = document.getElementById('send-chat');
 
-            if (chatWidget) {
-                // Get or create session ID
-                let sessionId = localStorage.getItem('chat_session_id');
-                if (!sessionId) {
-                    sessionId = 'session_' + Math.random().toString(36).substr(2, 9);
-                    localStorage.setItem('chat_session_id', sessionId);
+        if (chatWidget) {
+            // Get or create session ID
+            let sessionId = localStorage.getItem('chat_session_id');
+            if (!sessionId) {
+                sessionId = 'session_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('chat_session_id', sessionId);
+            }
+
+            let pollInterval = null;
+
+            // Toggle chat
+            chatIcon.addEventListener('click', async () => {
+                chatWindow.style.display = 'flex';
+                chatIcon.style.display = 'none';
+                
+                // Join / Fetch initial history
+                try {
+                    const res = await fetch(`${API_URL}/chat/join`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ sessionId })
+                    });
+                    const messages = await res.json();
+                    renderMessages(messages);
+                    
+                    // Start polling
+                    pollInterval = setInterval(fetchMessages, 3000);
+                } catch (err) {
+                    console.error('Error joining chat:', err);
                 }
+            });
 
-                // Toggle chat
-                chatIcon.addEventListener('click', () => {
-                    chatWindow.style.display = 'flex';
-                    chatIcon.style.display = 'none';
-                    socket.emit('join_chat', sessionId);
-                });
+            closeChat.addEventListener('click', () => {
+                chatWindow.style.display = 'none';
+                chatIcon.style.display = 'flex';
+                if (pollInterval) clearInterval(pollInterval);
+            });
 
-                closeChat.addEventListener('click', () => {
-                    chatWindow.style.display = 'none';
-                    chatIcon.style.display = 'flex';
-                });
-
-                // Send message
-                const sendMessage = () => {
-                    const text = chatInput.value.trim();
-                    if (text) {
-                        socket.emit('send_message', { sessionId, sender: 'customer', text });
-                        chatInput.value = '';
+            async function fetchMessages() {
+                try {
+                    const res = await fetch(`${API_URL}/chat/${sessionId}`);
+                    if (res.ok) {
+                        const messages = await res.json();
+                        renderMessages(messages);
                     }
-                };
+                } catch (err) {
+                    console.error('Error fetching messages:', err);
+                }
+            }
 
-                sendChatBtn.addEventListener('click', sendMessage);
-                chatInput.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') sendMessage();
-                });
+            // Send message
+            const sendMessage = async () => {
+                const text = chatInput.value.trim();
+                if (text) {
+                    chatInput.value = '';
+                    try {
+                        await fetch(`${API_URL}/chat/${sessionId}/message`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ sender: 'customer', text })
+                        });
+                        fetchMessages(); // immediately fetch to show message
+                    } catch (err) {
+                        console.error('Error sending message:', err);
+                    }
+                }
+            };
 
-                // Receive messages
-                socket.on('chat_history', (messages) => {
-                    chatMessages.innerHTML = '';
-                    messages.forEach(msg => appendMessage(msg));
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
-                });
+            sendChatBtn.addEventListener('click', sendMessage);
+            chatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendMessage();
+            });
 
-                socket.on('receive_message', (msg) => {
-                    appendMessage(msg);
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
-                });
-
-                function appendMessage(msg) {
+            function renderMessages(messages) {
+                chatMessages.innerHTML = '';
+                messages.forEach(msg => {
                     const div = document.createElement('div');
                     div.className = `chat-msg ${msg.sender === 'customer' ? 'msg-customer' : 'msg-admin'}`;
                     div.textContent = msg.text;
                     chatMessages.appendChild(div);
-                }
+                });
+                chatMessages.scrollTop = chatMessages.scrollHeight;
             }
         }
+    }
+    
+    // ADMIN SIDE CHAT
+    if (isDashboard && localStorage.getItem('token')) {
+        const activeChatsList = document.getElementById('active-chats-list');
+        const adminChatMessages = document.getElementById('admin-chat-messages');
+        const adminChatInput = document.getElementById('admin-chat-input');
+        const adminChatSend = document.getElementById('admin-chat-send');
+        const adminChatHeader = document.getElementById('admin-chat-header');
         
-        // ADMIN SIDE CHAT
-        if (isDashboard && localStorage.getItem('token')) {
-            socket.emit('admin_join');
-            socket.emit('fetch_active_chats');
+        let currentChatSession = null;
+        let adminChatsPoll = null;
+        let adminMsgPoll = null;
+        
+        if (activeChatsList) {
+            // Poll for active chats every 5 seconds
+            fetchActiveChats();
+            adminChatsPoll = setInterval(fetchActiveChats, 5000);
             
-            const activeChatsList = document.getElementById('active-chats-list');
-            const adminChatMessages = document.getElementById('admin-chat-messages');
-            const adminChatInput = document.getElementById('admin-chat-input');
-            const adminChatSend = document.getElementById('admin-chat-send');
-            const adminChatHeader = document.getElementById('admin-chat-header');
-            
-            let currentChatSession = null;
-            
-            if (activeChatsList) {
-                socket.on('active_chats_list', (chats) => {
-                    activeChatsList.innerHTML = '';
-                    if (chats.length === 0) {
-                        activeChatsList.innerHTML = '<p style="color: var(--text-secondary); text-align: center; margin-top: 1rem;">No active chats</p>';
-                        return;
-                    }
-                    
-                    chats.forEach(chat => {
-                        const div = document.createElement('div');
-                        div.style.padding = '1rem';
-                        div.style.borderBottom = '1px solid var(--border-color)';
-                        div.style.cursor = 'pointer';
-                        div.style.backgroundColor = currentChatSession === chat.sessionId ? 'var(--bg-secondary)' : 'transparent';
-                        div.innerHTML = `
-                            <strong>Session:</strong> ${chat.sessionId.substring(0,12)}...<br>
-                            <small style="color: var(--text-light)">Msgs: ${chat.messages.length} | Updated: ${new Date(chat.lastUpdated).toLocaleTimeString()}</small>
-                        `;
-                        
-                        div.addEventListener('click', () => {
-                            currentChatSession = chat.sessionId;
-                            adminChatHeader.textContent = `Chatting with: ${chat.sessionId}`;
-                            adminChatInput.disabled = false;
-                            adminChatSend.disabled = false;
-                            
-                            // Re-render list to show active state
-                            socket.emit('fetch_active_chats');
-                            
-                            // Render messages
-                            adminChatMessages.innerHTML = '';
-                            chat.messages.forEach(msg => appendAdminMessage(msg));
-                            adminChatMessages.scrollTop = adminChatMessages.scrollHeight;
-                        });
-                        
-                        activeChatsList.appendChild(div);
+            async function fetchActiveChats() {
+                try {
+                    const res = await fetch(`${API_URL}/chat/admin/active`, {
+                        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
                     });
-                });
-                
-                socket.on('active_chats_update', () => {
-                    socket.emit('fetch_active_chats');
-                });
-                
-                socket.on('admin_receive_message', (data) => {
-                    if (data.sessionId === currentChatSession) {
-                        appendAdminMessage(data.message);
-                        adminChatMessages.scrollTop = adminChatMessages.scrollHeight;
+                    if (res.ok) {
+                        const chats = await res.json();
+                        renderActiveChats(chats);
                     }
-                });
-
-                const sendAdminMessage = () => {
-                    const text = adminChatInput.value.trim();
-                    if (text && currentChatSession) {
-                        socket.emit('send_message', { sessionId: currentChatSession, sender: 'admin', text });
-                        adminChatInput.value = '';
-                    }
-                };
-
-                if (adminChatSend) {
-                    adminChatSend.addEventListener('click', sendAdminMessage);
-                    adminChatInput.addEventListener('keypress', (e) => {
-                        if (e.key === 'Enter') sendAdminMessage();
-                    });
+                } catch (err) {
+                    console.error('Error fetching active chats:', err);
                 }
-
-                function appendAdminMessage(msg) {
+            }
+            
+            function renderActiveChats(chats) {
+                activeChatsList.innerHTML = '';
+                if (chats.length === 0) {
+                    activeChatsList.innerHTML = '<p style="color: var(--text-secondary); text-align: center; margin-top: 1rem;">No active chats</p>';
+                    return;
+                }
+                
+                chats.forEach(chat => {
                     const div = document.createElement('div');
-                    div.style.maxWidth = '80%';
-                    div.style.padding = '0.75rem 1rem';
-                    div.style.borderRadius = '1rem';
-                    div.style.fontSize = '0.9rem';
-                    div.style.lineHeight = '1.4';
-                    div.style.wordWrap = 'break-word';
-                    div.style.alignSelf = msg.sender === 'admin' ? 'flex-end' : 'flex-start';
-                    div.style.background = msg.sender === 'admin' ? 'var(--primary-color)' : '#e5e7eb';
-                    div.style.color = msg.sender === 'admin' ? 'white' : '#111827';
-                    div.style.borderBottomRightRadius = msg.sender === 'admin' ? '0.25rem' : '1rem';
-                    div.style.borderBottomLeftRadius = msg.sender === 'admin' ? '1rem' : '0.25rem';
-                    div.style.marginTop = '0.5rem';
+                    div.style.padding = '1rem';
+                    div.style.borderBottom = '1px solid var(--border-color)';
+                    div.style.cursor = 'pointer';
+                    div.style.backgroundColor = currentChatSession === chat.sessionId ? 'var(--bg-secondary)' : 'transparent';
+                    div.innerHTML = `
+                        <strong>Session:</strong> ${chat.sessionId.substring(0,12)}...<br>
+                        <small style="color: var(--text-light)">Msgs: ${chat.messages.length} | Updated: ${new Date(chat.lastUpdated).toLocaleTimeString()}</small>
+                    `;
                     
-                    div.textContent = msg.text;
-                    adminChatMessages.appendChild(div);
+                    div.addEventListener('click', () => {
+                        currentChatSession = chat.sessionId;
+                        adminChatHeader.textContent = `Chatting with: ${chat.sessionId}`;
+                        adminChatInput.disabled = false;
+                        adminChatSend.disabled = false;
+                        
+                        renderActiveChats(chats); // update selected state
+                        
+                        // Fetch messages for this session and start polling
+                        if (adminMsgPoll) clearInterval(adminMsgPoll);
+                        fetchSessionMessages();
+                        adminMsgPoll = setInterval(fetchSessionMessages, 3000);
+                    });
+                    
+                    activeChatsList.appendChild(div);
+                });
+            }
+            
+            async function fetchSessionMessages() {
+                if (!currentChatSession) return;
+                try {
+                    const res = await fetch(`${API_URL}/chat/${currentChatSession}`);
+                    if (res.ok) {
+                        const messages = await res.json();
+                        renderAdminMessages(messages);
+                    }
+                } catch (err) {
+                    console.error('Error fetching session messages:', err);
                 }
+            }
+            
+            function renderAdminMessages(messages) {
+                adminChatMessages.innerHTML = '';
+                messages.forEach(msg => appendAdminMessage(msg));
+                adminChatMessages.scrollTop = adminChatMessages.scrollHeight;
+            }
+
+            const sendAdminMessage = async () => {
+                const text = adminChatInput.value.trim();
+                if (text && currentChatSession) {
+                    adminChatInput.value = '';
+                    try {
+                        await fetch(`${API_URL}/chat/${currentChatSession}/message`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ sender: 'admin', text })
+                        });
+                        fetchSessionMessages();
+                        fetchActiveChats();
+                    } catch (err) {
+                        console.error('Error sending message:', err);
+                    }
+                }
+            };
+
+            if (adminChatSend) {
+                adminChatSend.addEventListener('click', sendAdminMessage);
+                adminChatInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') sendAdminMessage();
+                });
+            }
+
+            function appendAdminMessage(msg) {
+                const div = document.createElement('div');
+                div.style.maxWidth = '80%';
+                div.style.padding = '0.75rem 1rem';
+                div.style.borderRadius = '1rem';
+                div.style.fontSize = '0.9rem';
+                div.style.lineHeight = '1.4';
+                div.style.wordWrap = 'break-word';
+                div.style.alignSelf = msg.sender === 'admin' ? 'flex-end' : 'flex-start';
+                div.style.background = msg.sender === 'admin' ? 'var(--primary-color)' : '#e5e7eb';
+                div.style.color = msg.sender === 'admin' ? 'white' : '#111827';
+                div.style.borderBottomRightRadius = msg.sender === 'admin' ? '0.25rem' : '1rem';
+                div.style.borderBottomLeftRadius = msg.sender === 'admin' ? '1rem' : '0.25rem';
+                div.style.marginTop = '0.5rem';
+                
+                div.textContent = msg.text;
+                adminChatMessages.appendChild(div);
             }
         }
     }
