@@ -3,6 +3,9 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
+const http = require('http');
+const { Server } = require('socket.io');
+const Chat = require('./models/Chat');
 
 process.on('uncaughtException', (err) => {
     console.error('UNCAUGHT EXCEPTION! Shutting down...');
@@ -22,6 +25,11 @@ const parcelRoutes = require('./routes/parcelRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: { origin: '*' }
+});
 
 // Middleware
 app.use(express.json());
@@ -55,8 +63,61 @@ app.use((err, req, res, next) => {
     });
 });
 
-app.listen(PORT, () => {
+// Socket.io Implementation
+io.on('connection', (socket) => {
+    socket.on('join_chat', async (sessionId) => {
+        socket.join(sessionId);
+        try {
+            let chat = await Chat.findOne({ sessionId });
+            if (!chat) {
+                chat = new Chat({ sessionId, messages: [] });
+                await chat.save();
+            }
+            socket.emit('chat_history', chat.messages);
+            io.to('admin_room').emit('active_chats_update');
+        } catch (err) {
+            console.error('Error joining chat:', err);
+        }
+    });
+
+    socket.on('admin_join', () => {
+        socket.join('admin_room');
+    });
+
+    socket.on('fetch_active_chats', async () => {
+        try {
+            const chats = await Chat.find({ status: 'active' }).sort({ lastUpdated: -1 });
+            socket.emit('active_chats_list', chats);
+        } catch (err) {
+            console.error(err);
+        }
+    });
+
+    socket.on('send_message', async (data) => {
+        const { sessionId, sender, text } = data;
+        try {
+            let chat = await Chat.findOne({ sessionId });
+            if (!chat && sender === 'customer') {
+                chat = new Chat({ sessionId, messages: [] });
+            }
+            if (chat) {
+                const newMessage = { sender, text, timestamp: new Date() };
+                chat.messages.push(newMessage);
+                chat.lastUpdated = new Date();
+                await chat.save();
+                
+                io.to(sessionId).emit('receive_message', newMessage);
+                io.to('admin_room').emit('active_chats_update');
+                io.to('admin_room').emit('admin_receive_message', { sessionId, message: newMessage });
+            }
+        } catch (err) {
+            console.error('Error sending message:', err);
+        }
+    });
+});
+
+server.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });
 
-module.exports = app;
+module.exports = { app, server };

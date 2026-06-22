@@ -11,6 +11,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- TOP CONTACT BAR -->
+    <div class="top-bar" style="background: #111827; color: #e5e7eb; padding: 0.5rem 0; font-size: 0.85rem; border-bottom: 1px solid #374151;">
+        <div class="container" style="display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; flex-wrap: wrap;">
+            <div class="contact-info" style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+                <span>📧 email@example.com</span>
+                <span>📞 +1 234 567 8900</span>
+                <span>📍 123 Logistics St, New York, NY 10001</span>
+            </div>
+        </div>
+    </div>
+
     <!-- NAVIGATION -->
     <header class="navbar">
         <div class="container">
@@ -24,7 +35,6 @@
                     <a href="#services" class="nav-link">Services</a>
                     <a href="#features" class="nav-link">Features</a>
                     <a href="#testimonials" class="nav-link">Testimonials</a>
-                    <a href="dashboard.html" class="nav-link btn-admin">Admin Portal</a>
                 </nav>
                 <button class="mobile-menu-btn" id="mobile-menu-btn">
                     <span></span>
@@ -246,7 +256,7 @@
                         <li><a href="#track-section">Track Parcel</a></li>
                         <li><a href="#services">Our Services</a></li>
                         <li><a href="#features">Why Us</a></li>
-                        <li><a href="dashboard.html">Admin Portal</a></li>
+                        <li><a href="dashboard.html" style="opacity: 0;">Admin Portal</a></li>
                     </ul>
                 </div>
                 <div class="footer-section">
@@ -277,6 +287,27 @@
         </div>
     </footer>
 
+    <!-- Chat Widget -->
+    <div id="chat-widget" class="chat-widget">
+        <div id="chat-icon" class="chat-icon">
+            💬
+        </div>
+        <div id="chat-window" class="chat-window" style="display: none;">
+            <div class="chat-header">
+                <h3>Live Support</h3>
+                <span id="close-chat">&times;</span>
+            </div>
+            <div id="chat-messages" class="chat-messages">
+                <!-- Messages will appear here -->
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Type a message...">
+                <button id="send-chat" class="btn btn-primary">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

@@ -454,4 +454,172 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
+
+    // --- CHAT LOGIC ---
+    if (typeof io !== 'undefined') {
+        const socket = io();
+        
+        // CUSTOMER SIDE CHAT
+        if (!isDashboard) {
+            const chatWidget = document.getElementById('chat-widget');
+            const chatIcon = document.getElementById('chat-icon');
+            const chatWindow = document.getElementById('chat-window');
+            const closeChat = document.getElementById('close-chat');
+            const chatMessages = document.getElementById('chat-messages');
+            const chatInput = document.getElementById('chat-input');
+            const sendChatBtn = document.getElementById('send-chat');
+
+            if (chatWidget) {
+                // Get or create session ID
+                let sessionId = localStorage.getItem('chat_session_id');
+                if (!sessionId) {
+                    sessionId = 'session_' + Math.random().toString(36).substr(2, 9);
+                    localStorage.setItem('chat_session_id', sessionId);
+                }
+
+                // Toggle chat
+                chatIcon.addEventListener('click', () => {
+                    chatWindow.style.display = 'flex';
+                    chatIcon.style.display = 'none';
+                    socket.emit('join_chat', sessionId);
+                });
+
+                closeChat.addEventListener('click', () => {
+                    chatWindow.style.display = 'none';
+                    chatIcon.style.display = 'flex';
+                });
+
+                // Send message
+                const sendMessage = () => {
+                    const text = chatInput.value.trim();
+                    if (text) {
+                        socket.emit('send_message', { sessionId, sender: 'customer', text });
+                        chatInput.value = '';
+                    }
+                };
+
+                sendChatBtn.addEventListener('click', sendMessage);
+                chatInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') sendMessage();
+                });
+
+                // Receive messages
+                socket.on('chat_history', (messages) => {
+                    chatMessages.innerHTML = '';
+                    messages.forEach(msg => appendMessage(msg));
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                });
+
+                socket.on('receive_message', (msg) => {
+                    appendMessage(msg);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                });
+
+                function appendMessage(msg) {
+                    const div = document.createElement('div');
+                    div.className = `chat-msg ${msg.sender === 'customer' ? 'msg-customer' : 'msg-admin'}`;
+                    div.textContent = msg.text;
+                    chatMessages.appendChild(div);
+                }
+            }
+        }
+        
+        // ADMIN SIDE CHAT
+        if (isDashboard && localStorage.getItem('token')) {
+            socket.emit('admin_join');
+            socket.emit('fetch_active_chats');
+            
+            const activeChatsList = document.getElementById('active-chats-list');
+            const adminChatMessages = document.getElementById('admin-chat-messages');
+            const adminChatInput = document.getElementById('admin-chat-input');
+            const adminChatSend = document.getElementById('admin-chat-send');
+            const adminChatHeader = document.getElementById('admin-chat-header');
+            
+            let currentChatSession = null;
+            
+            if (activeChatsList) {
+                socket.on('active_chats_list', (chats) => {
+                    activeChatsList.innerHTML = '';
+                    if (chats.length === 0) {
+                        activeChatsList.innerHTML = '<p style="color: var(--text-secondary); text-align: center; margin-top: 1rem;">No active chats</p>';
+                        return;
+                    }
+                    
+                    chats.forEach(chat => {
+                        const div = document.createElement('div');
+                        div.style.padding = '1rem';
+                        div.style.borderBottom = '1px solid var(--border-color)';
+                        div.style.cursor = 'pointer';
+                        div.style.backgroundColor = currentChatSession === chat.sessionId ? 'var(--bg-secondary)' : 'transparent';
+                        div.innerHTML = `
+                            <strong>Session:</strong> ${chat.sessionId.substring(0,12)}...<br>
+                            <small style="color: var(--text-light)">Msgs: ${chat.messages.length} | Updated: ${new Date(chat.lastUpdated).toLocaleTimeString()}</small>
+                        `;
+                        
+                        div.addEventListener('click', () => {
+                            currentChatSession = chat.sessionId;
+                            adminChatHeader.textContent = `Chatting with: ${chat.sessionId}`;
+                            adminChatInput.disabled = false;
+                            adminChatSend.disabled = false;
+                            
+                            // Re-render list to show active state
+                            socket.emit('fetch_active_chats');
+                            
+                            // Render messages
+                            adminChatMessages.innerHTML = '';
+                            chat.messages.forEach(msg => appendAdminMessage(msg));
+                            adminChatMessages.scrollTop = adminChatMessages.scrollHeight;
+                        });
+                        
+                        activeChatsList.appendChild(div);
+                    });
+                });
+                
+                socket.on('active_chats_update', () => {
+                    socket.emit('fetch_active_chats');
+                });
+                
+                socket.on('admin_receive_message', (data) => {
+                    if (data.sessionId === currentChatSession) {
+                        appendAdminMessage(data.message);
+                        adminChatMessages.scrollTop = adminChatMessages.scrollHeight;
+                    }
+                });
+
+                const sendAdminMessage = () => {
+                    const text = adminChatInput.value.trim();
+                    if (text && currentChatSession) {
+                        socket.emit('send_message', { sessionId: currentChatSession, sender: 'admin', text });
+                        adminChatInput.value = '';
+                    }
+                };
+
+                if (adminChatSend) {
+                    adminChatSend.addEventListener('click', sendAdminMessage);
+                    adminChatInput.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') sendAdminMessage();
+                    });
+                }
+
+                function appendAdminMessage(msg) {
+                    const div = document.createElement('div');
+                    div.style.maxWidth = '80%';
+                    div.style.padding = '0.75rem 1rem';
+                    div.style.borderRadius = '1rem';
+                    div.style.fontSize = '0.9rem';
+                    div.style.lineHeight = '1.4';
+                    div.style.wordWrap = 'break-word';
+                    div.style.alignSelf = msg.sender === 'admin' ? 'flex-end' : 'flex-start';
+                    div.style.background = msg.sender === 'admin' ? 'var(--primary-color)' : '#e5e7eb';
+                    div.style.color = msg.sender === 'admin' ? 'white' : '#111827';
+                    div.style.borderBottomRightRadius = msg.sender === 'admin' ? '0.25rem' : '1rem';
+                    div.style.borderBottomLeftRadius = msg.sender === 'admin' ? '1rem' : '0.25rem';
+                    div.style.marginTop = '0.5rem';
+                    
+                    div.textContent = msg.text;
+                    adminChatMessages.appendChild(div);
+                }
+            }
+        }
+    }
 });
